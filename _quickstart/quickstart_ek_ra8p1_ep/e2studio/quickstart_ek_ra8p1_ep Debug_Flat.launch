@@ -27,7 +27,7 @@
     <stringAttribute key="com.renesas.cdt.core.targetDevice" value="R7KA8P1KF_CPU0"/>
     <booleanAttribute key="com.renesas.cdt.core.useRemoteTarget" value="true"/>
     <booleanAttribute key="com.renesas.cdt.core.verboseMode" value="false"/>
-    <stringAttribute key="com.renesas.cdt.debug.ioview.dsf.registerSelection0" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?&gt;&#13;&#10;&lt;selectedRegisterList ioFilePath=&quot;C:\Users\b3800117\.eclipse\com.renesas.platform_170476184\DebugComp\RA\IoFiles\R7KA8P1AD.svd&quot;/&gt;&#13;&#10;"/>
+    <stringAttribute key="com.renesas.cdt.debug.ioview.dsf.registerSelection0" value="&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; standalone=&quot;no&quot;?&gt;&#13;&#10;&lt;selectedRegisterList ioFilePath=&quot;C:\Users\grace\.eclipse\com.renesas.platform_1213781633\DebugComp\RA\IoFiles\R7KA8P1AD.svd&quot;/&gt;&#13;&#10;"/>
     <stringAttribute key="com.renesas.cdt.launch.dsf.ASyncTarget" value=""/>
     <stringAttribute key="com.renesas.cdt.launch.dsf.IO_MAP" value="${support_area_loc}"/>
     <stringAttribute key="com.renesas.cdt.launch.dsf.SyncMode" value="sync"/>
