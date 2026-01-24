@@ -1,7 +1,8 @@
 # Phase 1: ファイル構造の把握 - 解析レポート
 
 ## 解析日時
-2026-01-23
+2026-01-23（初版）
+2026-01-24（更新：FSPコード生成後の構造を反映）
 
 ## 概要
 
@@ -54,10 +55,53 @@ quickstart_ek_ra8p1_ep/
     ├── build/                              # ビルド出力ディレクトリ
     │   └── compile_commands.json           # コンパイルコマンドDB
     │
+    ├── Debug/                              # ★ ビルド出力（.gitignoreで除外）
+    │   ├── *.o, *.d                        # オブジェクトファイル、依存関係ファイル
+    │   └── quickstart_ek_ra8p1_ep.elf      # ELFバイナリ
+    │
     ├── script/                             # ★ リンカスクリプト
     │   ├── fsp.ld                          # FSPリンカスクリプト（メイン）
-    │   ├── memory_regions.ld               # ★ メモリ領域定義
     │   └── RA8x1_Reset_OSPI.JLinkScript    # J-Link OSPIリセットスクリプト
+    │
+    ├── ra/                                 # ★ FSPドライバソース（自動生成）
+    │   ├── arm/CMSIS_6/                    # ARM CMSIS v6ライブラリ
+    │   ├── aws/FreeRTOS/                   # FreeRTOSソースコード
+    │   ├── board/ra8p1_ek/                 # EK-RA8P1ボードサポート
+    │   ├── fsp/                            # FSPドライバ実装
+    │   │   ├── inc/api/                    # APIヘッダ
+    │   │   ├── inc/instances/              # インスタンスヘッダ
+    │   │   └── src/                        # ドライバソース
+    │   │       ├── bsp/                    # BSP（ボードサポートパッケージ）
+    │   │       ├── r_adc_b/                # ADC-Bドライバ
+    │   │       ├── r_drw/                  # D/AVE 2Dドライバ
+    │   │       ├── r_glcdc/                # GLCDCドライバ
+    │   │       ├── r_gpt/                  # GPTドライバ
+    │   │       ├── r_icu/                  # ICUドライバ
+    │   │       ├── r_iic_master/           # I2Cマスタドライバ
+    │   │       ├── r_ioport/               # IOポートドライバ
+    │   │       ├── r_mipi_csi/             # MIPI CSIドライバ
+    │   │       ├── r_mipi_phy/             # MIPI PHYドライバ
+    │   │       ├── r_ospi_b/               # OSPI-Bドライバ
+    │   │       ├── r_sci_b_uart/           # SCI UART-Bドライバ
+    │   │       ├── r_vin/                  # ビデオ入力ドライバ
+    │   │       └── rm_freertos_port/       # FreeRTOSポート
+    │   └── tes/dave2d/                     # D/AVE 2Dグラフィックスエンジン
+    │
+    ├── ra_cfg/                             # ★ FSP設定ヘッダ（自動生成）
+    │   ├── aws/FreeRTOSConfig.h            # FreeRTOS設定
+    │   └── fsp_cfg/                        # FSPモジュール設定
+    │       ├── bsp/                        # BSP設定ヘッダ
+    │       └── r_*_cfg.h                   # 各ドライバ設定ヘッダ
+    │
+    ├── ra_gen/                             # ★ FSP自動生成コード
+    │   ├── main.c                          # メイン関数（スレッド起動）
+    │   ├── hal_data.c/h                    # HALデータ定義（199KB）
+    │   ├── common_data.c/h                 # 共通データ定義
+    │   ├── vector_data.c/h                 # ベクタテーブル定義
+    │   ├── pin_data.c                      # ピン設定データ
+    │   ├── bsp_clock_cfg.h                 # クロック設定
+    │   ├── *_thread.c/h                    # 各スレッドスタブ
+    │   └── ...
     │
     └── src/                                # ★ アプリケーションソースコード
         │
@@ -195,12 +239,25 @@ quickstart_ek_ra8p1_ep/
 
 #### 5. リンカスクリプト
 
-| ファイル | 役割 |
-|---------|------|
-| `fsp.ld` | FSPリンカスクリプト（memory_regions.ld, fsp_gen.ldをインクルード） |
-| `memory_regions.ld` | メモリ領域定義（自動生成） |
+| ファイル | 場所 | 役割 |
+|---------|------|------|
+| `fsp.ld` | `script/` | FSPリンカスクリプト（memory_regions.ld, fsp_gen.ldをインクルード） |
+| `memory_regions.ld` | `Debug/`（ビルド時生成） | メモリ領域定義（自動生成） |
+| `fsp_gen.ld` | `Debug/`（ビルド時生成） | FSP生成リンカスクリプト |
 
-#### 6. 画像リソース
+#### 6. FSP自動生成コード（ra_gen/）
+
+| ファイル | サイズ | 役割 |
+|---------|--------|------|
+| `main.c` | 8.7KB | メイン関数、スレッド起動 |
+| `hal_data.c/h` | 199KB/4.3KB | HALインスタンス・設定データ |
+| `common_data.c/h` | 35KB/7.5KB | 共通データ定義 |
+| `vector_data.c/h` | 8.9KB/10KB | 割り込みベクタテーブル |
+| `pin_data.c` | 26KB | ピン設定データ |
+| `bsp_clock_cfg.h` | 5.4KB | クロック設定 |
+| `*_thread.c/h` | 各3-4KB | 各スレッドのスタブコード |
+
+#### 7. 画像リソース
 
 | ディレクトリ | ファイル数 | 内容 |
 |-------------|-----------|------|
@@ -211,7 +268,9 @@ quickstart_ek_ra8p1_ep/
 
 ---
 
-### メモリ配置（memory_regions.ld より）
+### メモリ配置（Debug/memory_regions.ld より）
+
+※ ビルド時に`Debug/`ディレクトリに自動生成される
 
 | 領域 | 開始アドレス | サイズ | 用途 |
 |------|-------------|--------|------|
@@ -231,9 +290,11 @@ quickstart_ek_ra8p1_ep/
 
 ### 1. プロジェクト構造の特徴
 
-- **FSPディレクトリ未同梱**: `ra/`, `ra_gen/`, `ra_cfg/` ディレクトリは含まれていない
-  - FSPコンフィグレータで `configuration.xml` を開いてコード生成が必要
-  - FSPライブラリはe2 studioのワークスペースから参照される
+- **FSPコード生成済み**: `ra/`, `ra_gen/`, `ra_cfg/` ディレクトリが含まれている
+  - `ra/`: FSPドライバソース（CMSIS、FreeRTOS、FSPドライバ、D/AVE 2D）
+  - `ra_gen/`: FSP自動生成コード（スレッドスタブ、HALデータ、ベクタテーブル等）
+  - `ra_cfg/`: FSP設定ヘッダ（各モジュールの設定）
+  - e2 studioで`configuration.xml`を開いて再生成も可能
 
 - **ビルド済みバイナリ提供**: `quickstart_ek_ra8p1_ep.hex`（15.8MB）が同梱
   - 即座に動作確認可能
@@ -269,10 +330,11 @@ quickstart_ek_ra8p1_ep/
 
 ## 関連ファイル
 
-- `/Users/k-abe/github/ra-fsp-examples_ek_ra8p1_analysis/_quickstart/quickstart_ek_ra8p1_ep/readme.txt`
-- `/Users/k-abe/github/ra-fsp-examples_ek_ra8p1_analysis/_quickstart/quickstart_ek_ra8p1_ep/e2studio/configuration.xml`
-- `/Users/k-abe/github/ra-fsp-examples_ek_ra8p1_analysis/_quickstart/quickstart_ek_ra8p1_ep/e2studio/src/*.c`
-- `/Users/k-abe/github/ra-fsp-examples_ek_ra8p1_analysis/_quickstart/quickstart_ek_ra8p1_ep/e2studio/script/memory_regions.ld`
+- `_quickstart/quickstart_ek_ra8p1_ep/readme.txt`
+- `_quickstart/quickstart_ek_ra8p1_ep/e2studio/configuration.xml`
+- `_quickstart/quickstart_ek_ra8p1_ep/e2studio/src/*.c`
+- `_quickstart/quickstart_ek_ra8p1_ep/e2studio/ra_gen/*.c`
+- `_quickstart/quickstart_ek_ra8p1_ep/e2studio/ra/fsp/src/**/*.c`
 
 ---
 
@@ -290,19 +352,27 @@ quickstart_ek_ra8p1_ep/
 | 分類 | ファイル | 理由 |
 |------|---------|------|
 | FSP設定 | `configuration.xml` | e2 studio GUIで編集 |
-| メモリ定義 | `memory_regions.ld` | FSPコンフィグレータが生成 |
+| リンカスクリプト | `Debug/memory_regions.ld`, `Debug/fsp_gen.ld` | ビルド時に自動生成 |
 | IDE設定 | `.cproject`, `.project` | e2 studioが管理 |
-| FSP生成コード | `ra_gen/*`, `ra_cfg/*`, `ra/*` | コード生成後に出現、編集不可 |
+| FSP生成コード | `ra_gen/*`, `ra_cfg/*`, `ra/*` | FSPコンフィグレータで再生成される |
+| ビルド出力 | `Debug/*` | ビルド時に生成（.gitignoreで除外推奨） |
 
 ### FSPコード生成について
+
+本リポジトリにはFSP生成済みコードが含まれています。再生成する場合：
 
 1. e2 studioで `configuration.xml` を開く
 2. FSPコンフィグレータで設定を確認/変更
 3. 「Generate Project Content」を実行
-4. 以下のディレクトリが生成される：
+4. 以下のディレクトリが更新される：
    - `ra_gen/` - FSP自動生成コード
    - `ra_cfg/` - FSP設定ヘッダ
-   - `ra/` - FSPドライバソース（シンボリックリンクまたはコピー）
+   - `ra/` - FSPドライバソース
+
+5. ビルド実行時に以下が生成される：
+   - `Debug/memory_regions.ld` - メモリ領域定義
+   - `Debug/fsp_gen.ld` - FSP生成リンカスクリプト
+   - `Debug/*.o`, `Debug/*.elf` - コンパイル出力
 
 ---
 
@@ -323,6 +393,9 @@ quickstart_ek_ra8p1_ep/
 
 ### 補足情報
 
-- 解析対象ソースファイル: 26個（.c）、24個（.h）※画像除く
-- 最大のソースファイル: `camera_thread_entry.c`（55KB）
+- 解析対象ソースファイル: 105個（.c）、206個（.h）※画像・Debug除く
+  - うちアプリケーションコード: 26個（.c）、24個（.h）
+  - うちFSP/CMSIS/FreeRTOS: 79個（.c）、182個（.h）
+- 最大のソースファイル: `ra_gen/hal_data.c`（199KB）
+- 最大のアプリケーションソース: `camera_thread_entry.c`（55KB）
 - FSP設定ファイル: `configuration.xml`（306KB）
