@@ -2,3 +2,6 @@
 
 # Build output
 _quickstart/quickstart_ek_ra8p1_ep/e2studio/Debug/
+
+# Log files
+JLinkLog.log
