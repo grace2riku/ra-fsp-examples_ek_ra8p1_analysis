@@ -1,7 +1,8 @@
 # Phase 2: ビルドシステム・環境構成 - 解析レポート
 
 ## 解析日時
-2026-01-23
+2026-01-23（初版）
+2026-01-24（更新：ビルド後の状態を反映）
 
 ## 概要
 
@@ -130,8 +131,10 @@ ${ProjName}/ra/tes/dave2d/inc            # Dave2Dグラフィックス
 #### リンカオプション
 
 ```
-リンカスクリプト: fsp.ld
-ライブラリパス: ${ProjName}/script
+リンカスクリプト: script/fsp.ld
+  └─ INCLUDE memory_regions.ld  (Debug/に自動生成)
+  └─ INCLUDE fsp_gen.ld         (Debug/に自動生成)
+ライブラリパス: ${ProjName}/script, ${ProjName}/Debug
 オプション:
   --gc-sections          # 未使用セクション削除
   --specs=nano.specs     # newlib-nano使用
@@ -202,10 +205,12 @@ make clean
 
 ### FSPコード生成の手順
 
+本リポジトリにはFSP生成済みコードが含まれています。再生成する場合：
+
 1. e2 studioで `configuration.xml` を開く
 2. 必要に応じてBSP、クロック、ピン、スタックを設定
 3. 「Generate Project Content」を実行
-4. 生成されるディレクトリ：
+4. 更新されるディレクトリ：
    - `ra/` - FSPドライバソース
    - `ra_gen/` - 自動生成コード（hal_data.c等）
    - `ra_cfg/` - 設定ヘッダファイル
@@ -217,11 +222,15 @@ configuration.xml
     ↓ [FSP Code Generator]
 ra_gen/hal_data.c, ra_gen/vector_data.c, ...
 ra_cfg/fsp_cfg/*.h
+    ↓ [ビルド開始時]
+Debug/memory_regions.ld  (メモリ領域定義)
+Debug/fsp_gen.ld         (FSPリンカスクリプト)
+Debug/makefile           (ビルド用Makefile)
     ↓ [GNU Make]
 src/*.c + ra/**/*.c
     ↓ [arm-none-eabi-gcc]
 Debug/*.o (オブジェクトファイル)
-    ↓ [arm-none-eabi-ld]
+    ↓ [arm-none-eabi-ld + script/fsp.ld]
 Debug/quickstart_ek_ra8p1_ep.elf
     ↓ [arm-none-eabi-objcopy]
 Debug/quickstart_ek_ra8p1_ep.hex
@@ -233,14 +242,19 @@ Debug/quickstart_ek_ra8p1_ep.hex
 
 ### ビルド出力ファイル一覧
 
-| ファイル種別 | パス | 用途 |
-|-------------|------|------|
-| **ELFファイル** | `Debug/quickstart_ek_ra8p1_ep.elf` | デバッグ用実行ファイル |
-| **HEXファイル** | `Debug/quickstart_ek_ra8p1_ep.hex` | フラッシュ書き込み用 |
-| **MAPファイル** | `Debug/quickstart_ek_ra8p1_ep.map` | メモリ配置確認用 |
-| **オブジェクトファイル** | `Debug/**/*.o` | 中間ファイル |
-| **依存関係ファイル** | `Debug/**/*.d` | 依存関係追跡用 |
-| **リストファイル** | `Debug/quickstart_ek_ra8p1_ep.lst` | 逆アセンブルリスト |
+| ファイル種別 | パス | サイズ | 用途 |
+|-------------|------|--------|------|
+| **ELFファイル** | `Debug/quickstart_ek_ra8p1_ep.elf` | 7.2MB | デバッグ用実行ファイル |
+| **HEXファイル** | `Debug/quickstart_ek_ra8p1_ep.hex` | 15.4MB | フラッシュ書き込み用 |
+| **MAPファイル** | `Debug/quickstart_ek_ra8p1_ep.map` | 546KB | メモリ配置確認用 |
+| **リンカスクリプト** | `Debug/memory_regions.ld` | 3KB | メモリ領域定義（自動生成） |
+| **リンカスクリプト** | `Debug/fsp_gen.ld` | 42KB | FSP生成リンカスクリプト |
+| **Makefile** | `Debug/makefile` | 4.7KB | ビルド用Makefile（自動生成） |
+| **コンパイルDB** | `Debug/compile_commands.json` | 629KB | LSP用コンパイルコマンド |
+| **オブジェクトファイル** | `Debug/**/*.o` | - | 中間ファイル |
+| **依存関係ファイル** | `Debug/**/*.d` | - | 依存関係追跡用 |
+
+※ `Debug/`ディレクトリは`.gitignore`で除外推奨
 
 ### ビルド済みバイナリ（同梱）
 
@@ -281,7 +295,7 @@ EnableFlashBP = 1      # フラッシュブレークポイント有効
 [FLASH]
 SkipProgOnCRCMatch = 1 # CRC一致時はプログラムスキップ
 VerifyDownload = 1     # ダウンロード後検証
-AllowCaching = 1       # キャッシュ有効
+AllowCaching = 0       # キャッシュ無効
 
 [GENERAL]
 WorkRAMSize = 0x10000  # 64KB
@@ -350,7 +364,8 @@ WorkRAMAddr = 0x22060000
 
 - **Managed Build**: e2 studioが自動的にMakefileを生成・管理
 - **並列ビルド対応**: 最適化された並列ビルドが有効
-- **compile_commands.json**: clangd等のLSP対応
+- **compile_commands.json**: clangd等のLSP対応（Debug/に629KB生成）
+- **リンカスクリプト自動生成**: `memory_regions.ld`と`fsp_gen.ld`はビルド時にDebug/に生成
 
 ### 2. 最適化設定
 
@@ -507,11 +522,12 @@ J-Link> g
 
 ## 関連ファイル
 
-- `e2studio/.project` - Eclipseプロジェクト設定
-- `e2studio/.cproject` - C/C++ビルド設定
-- `e2studio/configuration.xml` - FSPコンフィグレーション
-- `e2studio/quickstart_ek_ra8p1_ep Debug_Flat.launch` - デバッグ設定
-- `e2studio/script/fsp.ld` - リンカスクリプト
+- `_quickstart/quickstart_ek_ra8p1_ep/e2studio/.project` - Eclipseプロジェクト設定
+- `_quickstart/quickstart_ek_ra8p1_ep/e2studio/.cproject` - C/C++ビルド設定
+- `_quickstart/quickstart_ek_ra8p1_ep/e2studio/configuration.xml` - FSPコンフィグレーション
+- `_quickstart/quickstart_ek_ra8p1_ep/e2studio/quickstart_ek_ra8p1_ep Debug_Flat.launch` - デバッグ設定
+- `_quickstart/quickstart_ek_ra8p1_ep/e2studio/quickstart_ek_ra8p1_ep Debug_Flat.jlink` - J-Link設定
+- `_quickstart/quickstart_ek_ra8p1_ep/e2studio/script/fsp.ld` - リンカスクリプト
 
 ---
 
