@@ -42,6 +42,12 @@
 | 13 | カメラ表示解析 | OV5640カメラからLCDへのデータフロー | `phase13_camera_display_report.md` |
 | 14 | オーバーレイ表示解析 | GLCDCレイヤー合成とDave/2D描画 | `phase14_overlay_display_report.md` |
 
+### 外部メモリ・ペリフェラル編 (Phase 16)
+
+| Phase | タイトル | 説明 | レポートファイル |
+|-------|---------|------|-----------------|
+| 16 | Octo-SPIフラッシュ解析 | OSPIメモリ領域・HW設定・制御方法 | `phase16_octo_spi_flash_report.md` |
+
 ### 法務・コンプライアンス編 (Phase 15)
 
 | Phase | タイトル | 説明 | レポートファイル |
